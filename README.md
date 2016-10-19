@@ -3,10 +3,10 @@ _A User-Friendly Pipeline for the production of Core Genome and Concatenated Pro
 _Phylogenetic Trees and Protein based Comparative Genomic Analyses._
 
 ## Installation
-* Clone repository to local directory.
-* Extract PhyEco Marker HMM files
-* Use `chmod +x` to make dependencies executable in Linux and OSX.
-* Use `sudo apt-get install python-tk` to install the Tkinter module required for the GLIMPS GUI in Linux.
+1. Clone repository to local directory.
+1. Extract PhyEco Marker HMM files
+1. Use `chmod +x` to make dependencies executable in Linux and OSX.
+1. Use `sudo apt-get install python-tk` to install the Tkinter module required for the GLIMPS GUI in Linux.
 
 ## Usage
 `python GLIMPS_Pipeline.py [**kwargs]` or `python GLIMPS_UI.py`
