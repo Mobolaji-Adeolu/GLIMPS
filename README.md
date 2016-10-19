@@ -9,62 +9,60 @@ _Phylogenetic Trees and Protein based Comparative Genomic Analyses._
 * Use "sudo apt-get install python-tk" to install the Tkinter module required for the GLIMPS GUI in Linux.
 * Use "python GLIMPS_UI.py" to execute GLIMPS_UI.
 
-## Command LinUsage
+## Command Line Usage
 **GLIMPS_Pipeline.py** [*args]
--h, --help
-Show this help message and exit
--i, --Input_Directory
-The directory in which input genome files are located
--o, --Output_Directory
-The directory in which Output files are to be placed
--d, --Protein_Distribution
-The minimum proportion of the input genomes in which a protein family must be present
--t, --Threads
-The minimum proportion of the input genomes in which a protein family must be present
--p, --Target_Proteins
-The location of a file containing the protein targets for protein family identification (optional)
--m, --Marker_Proteins
-The predefined marker protein family set to be used for analysis (optional)
---Single_Copy
-Determines whether the pipeline utilizes only single copy homologs
---PAMatrix
-Determines whether the pipeline produces a PA Matrix
---POCP
-Determines whether the pipeline produces a POCP Matrix
---AAI
-Determines whether the pipeline produces an AAI Matrix
---Fast_Cluster
-Skips the HMM-based iterative clustering steps after CD-Hit during the core genome identification process
---Fast_Phylogeny
-Skips the RAxML based tree building step after FastTree
---No_Tree
-Skips all phylogenetic tree building steps
--f, --Alignment_Filtering
-The method by which the alignments will be filtered
---cdhit
-Path to the cd-hit executable
---jackhmmer
-Path to the jackhmmer executable
---hmmbuild
-Path to the hmmbuild executable
---hmmsearch
-Path to the hmmsearch executable
---clustalo
-Path to the clustalo executable
---trimal
-Path to the trimal executable
---fasttree
-Path to the fasttree executable
---raxml
-Path to the raxml executable
+
+-h, --help  _Show help message and exit_
+
+-i, --Input_Directory  _The directory in which input genome files are located_
+
+-o, --Output_Directory  _The directory in which Output files are to be placed_
+
+-d, --Protein_Distribution  _The minimum proportion of the input genomes in which a protein family must be present_
+
+-t, --Threads  _The minimum proportion of the input genomes in which a protein family must be present_
+
+-p, --Target_Proteins  _The location of a file containing the protein targets for protein family identification (optional)_
+
+-m, --Marker_Proteins  _The predefined marker protein family set to be used for analysis (optional)_
+
+--Single_Copy  _Determines whether the pipeline utilizes only single copy homologs_
+
+--PAMatrix  _Determines whether the pipeline produces a PA Matrix_
+
+--POCP  _Determines whether the pipeline produces a POCP Matrix_
+
+--AAI  _Determines whether the pipeline produces an AAI Matrix_
+
+--Fast_Cluster  _Skips the HMM-based iterative clustering steps after CD-Hit during the core genome identification process_
+
+--Fast_Phylogeny  _Skips the RAxML based tree building step after FastTree_
+
+--No_Tree  _Skips all phylogenetic tree building steps_
+
+-f, --Alignment_Filtering  _The method by which the alignments will be filtered_
+
+--cdhit  _Path to the cd-hit executable_
+
+--jackhmmer  _Path to the jackhmmer executable_
+
+--hmmbuild  _Path to the hmmbuild executable_
+
+--hmmsearch  _Path to the hmmsearch executable_
+
+--clustalo  _Path to the clustalo executable_
+
+--trimal  _Path to the trimal executable_
+
+--fasttree  _Path to the fasttree executable_
+
+--raxml  _Path to the raxml executable_
 
 ## History
 Version 0.5: Initial Public Release
 
 ## Credits
-Mobolaji Adeolu
-**McMaster University**
-_Department of Biochemistry and Biomedical Sciences_
+Mobolaji Adeolu (Department of Biochemistry and Biomedical Sciences, McMaster University)
 
 ## License
 **MIT License**
