@@ -6,10 +6,13 @@ Department of Biochemistry and Biomedical Sciences
 McMaster University.
 Copyright 2016."""
 
+import sys
+try:
+    import Tkinter
+except ImportError:
+    sys.exit("Required python module, Tkinter, is unavailable. Please install TKinter to use the GLIMPS GUI.")
 import os
 import subprocess
-import sys
-import Tkinter
 import ScrolledText
 import tkFileDialog
 import tkMessageBox
@@ -317,7 +320,7 @@ class GUI(ttk.Frame):
                 self.Messenger()
                 sys.stderr.write("\nPipeline failure.\nCheck Logs.\n\n")
             self.Popup()
-        except:
+        except :
             self.Messenger()
             self.parent.after(100, self.process_queue)
 
@@ -489,7 +492,7 @@ class AsyncTask(multiprocessing.Process):
         """Runs pipeline in a seperate process and reports success or failure, overwrites run in multiprocessing"""
         try:
             import GLIMPS_Pipeline
-            Genome_Dir, Protein_Dir, Alignment_Dir, Concatenated_Dir, Tree_Dir, Log_Dir, GLIMPSe_Output_Dir, Dependency_Dir, Marker_Dir = GLIMPS_Pipeline.Build_Output_Dirs(self.Output_Directory, self.stdout_messenger, self.stderr_messenger)
+            Genome_Dir, Protein_Dir, Alignment_Dir, Concatenated_Dir, Tree_Dir, Log_Dir, GLIMPSe_Output_Dir, Dependency_Dir, Marker_Dir = GLIMPS_Pipeline.Build_Output_Dirs(self.Output_Directory)
             GLIMPS_Pipeline.Core_Pipeline(self.Input_Directory, self.Target_Proteins, self.Protein_Distribution,
                                           self.Alignment_Filtering, self.PAMatrix, self.POCP, self.AAI, self.Single_Copy,
                                           self.Marker_Proteins, self.Fast_Clust, self.Fast_Phylo, self.Phylogeny,

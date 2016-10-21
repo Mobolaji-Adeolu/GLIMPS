@@ -240,31 +240,24 @@ def make_dir(dir_name):
     """Make/overwrite folders"""
     try:
         os.mkdir(dir_name)
-    except:
+    except OSError:
         shutil.rmtree(dir_name)
         os.mkdir(dir_name)
 
 
-def Build_Output_Dirs(Output_Directory, stdout_messenger, stderr_messenger):
+def Build_Output_Dirs(Output_Directory):
     """Builds output directory structure"""
-    Output = GLIMPS_Writer(stdout_messenger, stderr_messenger)
-    default_output = os.path.join(os.path.dirname(sys.argv[0]), "Output")
     Genome_Dir = os.path.join(Output_Directory, "Data", "Genomes")
     Protein_Dir = os.path.join(Output_Directory, "Data", "Proteins")
     Alignment_Dir = os.path.join(Output_Directory, "Data", "Protein Alignments")
     Concatenated_Dir = os.path.join(Output_Directory, "Data", "Concatenated Alignments")
     Tree_Dir = os.path.join(Output_Directory, "Data", "Phylogenetic Trees")
-    Log_Dir = os.path.join(Output_Directory, "Data", "Logs")
+    Log_Dir = os.path.join(Output_Directory, "Logs")
     GLIMPSe_Output_Dir = os.path.join(Output_Directory, "GLIMPSe Output")
     Dependency_Dir = os.path.join(os.path.dirname(sys.argv[0]), "Dependencies")
     Marker_Dir = os.path.join(os.path.dirname(sys.argv[0]), "PhyEco Marker Protein Families")
-    if Output_Directory == default_output and not os.path.exists(default_output):
-        make_dir(Output_Directory)
-    try:
-        make_dir(os.path.join(Output_Directory, "Data"))
-    except:
-        Output.error("\nOutput directory not found.\n")
-        sys.exit()
+    make_dir(Output_Directory)
+    make_dir(os.path.join(Output_Directory, "Data"))
     make_dir(Genome_Dir)
     make_dir(Protein_Dir)
     make_dir(Alignment_Dir)
@@ -284,42 +277,42 @@ def Prepare_Dependencies(Dependency_Dir, stdout_messenger, stderr_messenger):
         try:
             subprocess.check_call(deps.cdhit, stdout=dump, stderr=dump)
             CDHIT = deps.cdhit
-        except:
+        except (subprocess.CalledProcessError, OSError):
             CDHIT = ""
         try:
             subprocess.check_call(deps.jackhmmer, stdout=dump, stderr=dump)
             JACKHMMER = deps.jackhmmer
-        except:
+        except (subprocess.CalledProcessError, OSError):
             JACKHMMER = ""
         try:
             subprocess.check_call(deps.hmmbuild, stdout=dump, stderr=dump)
             HMMBUILD = deps.hmmbuild
-        except:
+        except (subprocess.CalledProcessError, OSError):
             HMMBUILD = ""
         try:
             subprocess.check_call(deps.hmmsearch, stdout=dump, stderr=dump)
             HMMSEARCH = deps.hmmsearch
-        except:
+        except (subprocess.CalledProcessError, OSError):
             HMMSEARCH = ""
         try:
             subprocess.check_call(deps.clustalo, stdout=dump, stderr=dump)
             ClustalOmega = deps.clustalo
-        except:
+        except (subprocess.CalledProcessError, OSError):
             ClustalOmega = ""
         try:
             subprocess.check_call(deps.trimal, stdout=dump, stderr=dump)
             TrimAl = deps.trimal
-        except:
+        except (subprocess.CalledProcessError, OSError):
             TrimAl = ""
         try:
             subprocess.check_call([deps.fasttree, "-expert"], stdout=dump, stderr=dump)
             FastTree = deps.fasttree
-        except:
+        except (subprocess.CalledProcessError, OSError):
             FastTree = ""
         try:
             subprocess.check_call(deps.raxml, stdout=dump, stderr=dump)
             RAxML = deps.raxml
-        except:
+        except (subprocess.CalledProcessError, OSError):
             RAxML = ""
     if sys.platform.startswith("linux"):
         OS_Dir = "Linux"
@@ -535,9 +528,16 @@ def CDHIT_Subprocess(CDHIT, Log_Dir, Output, Input_File, Output_File, Threshold,
            "0"]
     try:
         CDHIT_Output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-    except:
-        with open(os.path.join(Log_Dir, "HMMer.txt"), "a") as CDHIT_Log:
+    except subprocess.CalledProcessError as call_err:
+        with open(os.path.join(Log_Dir, "CDHIT.txt"), "a") as CDHIT_Log:
             CDHIT_Log.write(CDHIT_Output)
+            CDHIT_Log.write("\n\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output))
+        Output.error("\n\nCD-HIT Error. Check Logs.\n")
+        sys.exit()
+    except OSError as os_err:
+        with open(os.path.join(Log_Dir, "CDHIT.txt"), "a") as CDHIT_Log:
+            CDHIT_Log.write(CDHIT_Output)
+            CDHIT_Log.write("\n\n" + str(os_err.strerror))
         Output.error("\n\nCD-HIT Error. Check Logs.\n")
         sys.exit()
     with open(os.path.join(Log_Dir, "CDHIT.txt"), "a") as CDHIT_Log:
@@ -710,11 +710,15 @@ def Run_HMMBUILD(Alignment_Dir, Protein_Alignment, HMMBUILD, Output):
     """Runs HMMBuild subprocess"""
     cmd = [HMMBUILD, os.path.join(Alignment_Dir, os.path.splitext(Protein_Alignment)[0]),
            os.path.join(Alignment_Dir, Protein_Alignment)]
+    HMMBUILD_Output = ""
     try:
         HMMBUILD_Output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-    except:
+    except subprocess.CalledProcessError as call_err:
+        HMMBUILD_Output += "\n\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output)
         Output.error("\n\nHMMBUILD Error. Check Logs.\n")
-        sys.exit()
+    except OSError as os_err:
+        HMMBUILD_Output += "\n\n" + str(os_err.strerror)
+        Output.error("\n\nHMMBUILD Error. Check Logs.\n")
     return HMMBUILD_Output
 
 
@@ -722,11 +726,15 @@ def Run_HMMSEARCH(Alignment_Dir, Protein_Alignment, index, Genome_Dir, Represent
     """Runs HMMSearch subprocess"""
     cmd = [HMMSEARCH, "-E", "1e-5", "--incE", "1e-20", "--noali", os.path.join(Alignment_Dir, Protein_Alignment),
            os.path.join(Genome_Dir, Representative_File)]
+    HMMSEARCH_Output = ""
     try:
         HMMSEARCH_Output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-    except:
+    except subprocess.CalledProcessError as call_err:
+        HMMSEARCH_Output += "\n\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output)
         Output.error("\n\nHMMSEARCH Error. Check Logs.\n")
-        sys.exit()
+    except OSError as os_err:
+        HMMSEARCH_Output += "\n\n" + str(os_err.strerror)
+        Output.error("\n\nHMMSEARCH Error. Check Logs.\n")
     Return_Tuple = (index, HMMSEARCH_Output)
     return Return_Tuple
 
@@ -772,7 +780,7 @@ def HMM_Clustering(Genome_Dir, Alignment_Dir, HMMBUILD, HMMSEARCH, CDHIT_Cluster
         Primary_Cluster_Whole = CDHIT_Clusters_Only_Multi[int(Profiles[output[0]].split("_")[-1]) - 1]
         try:
             Primary_Index = HMM_Clusters.index(Primary_Cluster_Whole)
-        except:
+        except IndexError:
             continue
         Primary_Genomes = [ID[:5] for ID in HMM_Clusters[Primary_Index]]
         for ID in Primary_Genomes:
@@ -798,7 +806,7 @@ def HMM_Clustering(Genome_Dir, Alignment_Dir, HMMBUILD, HMMSEARCH, CDHIT_Cluster
                                 del HMM_Clusters[Secondary_Index]
                                 del HMM_Cluster_Reps[Secondary_Index]
                             break
-                        except:
+                        except IndexError:
                             continue
     return HMM_Clusters
 
@@ -854,11 +862,16 @@ def Run_JACKHMMER(Input_Fasta_Dict, Target_Proteins, ConcatenatedGenomeFile, JAC
     cmd = [JACKHMMER, "-E", "1e-5", "--incE", "1e-20", "--noali", Target_Proteins, ConcatenatedGenomeFile]
     try:
         JACKHMMER_Output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-    except:
+    except subprocess.CalledProcessError as call_err:
         with open(os.path.join(Log_Dir, "JACKHMMER.txt"), "a") as HMMer_Log:
             HMMer_Log.write(JACKHMMER_Output)
+            HMMer_Log.write("\n\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output))
         Output.error("\n\nJACKHMMER Error. Check Logs.\n")
-        sys.exit()
+    except OSError as os_err:
+        with open(os.path.join(Log_Dir, "JACKHMMER.txt"), "a") as HMMer_Log:
+            HMMer_Log.write(JACKHMMER_Output)
+            HMMer_Log.write("\n\n" + str(os_err.strerror))
+        Output.error("\n\nJACKHMMER Error. Check Logs.\n")
     with open(os.path.join(Log_Dir, "JACKHMMER.txt"), "a") as HMMer_Log:
         HMMer_Log.write(JACKHMMER_Output)
     Exit_Terms = ["------ inclusion threshold ------", "[No hits detected that satisfy reporting thresholds]"]
@@ -916,11 +929,16 @@ def Marker_HMMSEARCH(Marker_Names, Marker_File, ConcatenatedGenomeFile, HMMSEARC
     cmd = [HMMSEARCH, "-E", "1e-5", "--incE", "1e-20", "--noali", Marker_File, ConcatenatedGenomeFile]
     try:
         HMMSEARCH_Output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-    except:
+    except subprocess.CalledProcessError as call_err:
         with open(os.path.join(Log_Dir, "HMMSEARCH.txt"), "a") as HMMer_Log:
             HMMer_Log.write(HMMSEARCH_Output)
+            HMMer_Log.write("\n\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output))
         Output.error("\n\nHMMSEARCH Error. Check Logs.\n")
-        sys.exit()
+    except OSError as os_err:
+        with open(os.path.join(Log_Dir, "HMMSEARCH.txt"), "a") as HMMer_Log:
+            HMMer_Log.write(HMMSEARCH_Output)
+            HMMer_Log.write("\n\n" + str(os_err.strerror))
+        Output.error("\n\nHMMSEARCH Error. Check Logs.\n")
     with open(os.path.join(Log_Dir, "HMMSEARCH.txt"), "a") as HMMer_Log:
         HMMer_Log.write(HMMSEARCH_Output)
     Exit_Terms = ["------ inclusion threshold ------", "[No hits detected that satisfy reporting thresholds]", "Domain annotation for each sequence:"]
@@ -1186,7 +1204,12 @@ def Align_Proteins(Protein_Dir, Protein_File, Alignment_Dir, ClustalOmega, Count
                os.path.join(Alignment_Dir, Protein_File)]
         try:
             ClustalOmega_Output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-        except:
+        except subprocess.CalledProcessError as call_err:
+            ClustalOmega_Output += "\n\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output)
+            Output.error("\n\nClustal Omega Error. Check Logs.\n")
+            return ClustalOmega_Output
+        except OSError as os_err:
+            ClustalOmega_Output += "\n\n" + str(os_err.strerror)
             Output.error("\n\nClustal Omega Error. Check Logs.\n")
             return ClustalOmega_Output
     if not First_Run:
@@ -1234,8 +1257,13 @@ def Create_Weighted_Alignments(Alignment_Dir, Accepted_Proteins, TrimAl, Output)
                 os.path.join(Alignment_Dir, Alignment_File),
                 "-sgc"
             ])
-        except:
+        except subprocess.CalledProcessError as call_err:
             Output.error("\n\nTrimAl Error.\n")
+            Output.error("\n\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output))
+            sys.exit()
+        except OSError as os_err:
+            Output.error("\n\nTrimAl Error.\n")
+            Output.error("\nError: " + str(os_err.strerror))
             sys.exit()
         seq_score = []
         for line in TrimAl_Output.splitlines():
@@ -1286,8 +1314,13 @@ def Create_Trimmed_Alignments(Alignment_Dir, Accepted_Proteins, TrimAl, Output):
                 os.path.join(Alignment_Dir, "Trimmed_" + Alignment_File),
                 "-automated1"
             ])
-        except:
-            Output.error("\n\nTrimAl Error\n")
+        except subprocess.CalledProcessError as call_err:
+            Output.error("\n\nTrimAl Error.\n")
+            Output.error("\n\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output))
+            sys.exit()
+        except OSError as os_err:
+            Output.error("\n\nTrimAl Error.\n")
+            Output.error("\nError: " + str(os_err.strerror))
             sys.exit()
 
 
@@ -1385,7 +1418,7 @@ def Run_FastTree(Tree_Dir, Concatenated_Dir, FastTree, Log_Dir, Output):
         else:
             with open(os.path.join(Log_Dir, "FastTree.txt"), "a") as FastTree_Log:
                 FastTree_Log.write(FastTree_Output)
-    except:
+    except (subprocess.CalledProcessError, OSError):
         with open(os.path.join(Log_Dir, "FastTree.txt"), "a") as FastTree_Log:
             FastTree_Log.write(FastTree_Output)
         Output.error("\n\nFastTree Error. Check Logs.\n")
@@ -1418,21 +1451,23 @@ def Run_FastTree_Full(Tree_Dir, Concatenated_Dir, FastTree, Log_Dir, Output, GLI
         else:
             with open(os.path.join(Log_Dir, "FastTree.txt"), "a") as FastTree_Log:
                 FastTree_Log.write(FastTree_Output)
-    except:
+    except (subprocess.CalledProcessError, OSError):
         with open(os.path.join(Log_Dir, "FastTree.txt"), "a") as FastTree_Log:
             FastTree_Log.write(FastTree_Output)
         Output.error("\n\nFastTree Error. Check Logs.\n")
         sys.exit()
     try:
         import dendropy
+    except ImportError:
+        dendropy = None
+        shutil.copy(os.path.join(Tree_Dir, "FastTree.nwk"),
+                    os.path.join(GLIMPSe_Output_Dir, "Final_Tree.nwk"))
+    if dendropy:
         with open(os.path.join(Tree_Dir, "FastTree.nwk"), "r") as In_Tree:
             Tree = dendropy.Tree.get_from_string(In_Tree.readline(), "newick")
         Tree.ladderize(ascending=False)
         with open(os.path.join(GLIMPSe_Output_Dir, "Final_Tree.nwk"), "w") as Out_Tree:
             Out_Tree.write(Tree.as_string(schema='newick'))
-    except:
-        shutil.copy(os.path.join(Tree_Dir, "FastTree.nwk"),
-                    os.path.join(GLIMPSe_Output_Dir, "Final_Tree.nwk"))
 
 
 def Run_RAxML(Tree_Dir, Concatenated_Dir, RAxML, Threads, Log_Dir, GLIMPSe_Output_Dir, Output):
@@ -1467,7 +1502,7 @@ def Run_RAxML(Tree_Dir, Concatenated_Dir, RAxML, Threads, Log_Dir, GLIMPSe_Outpu
         ).communicate()[0]
         if not os.path.exists(Input_RAxML):
             raise subprocess.CalledProcessError
-    except:
+    except (subprocess.CalledProcessError, OSError):
         with open(os.path.join(Log_Dir, "RAxML.txt"), "w") as RAxML_Log:
             RAxML_Log.write(RAxML_Output)
         Output.error("\n\nRAxML Error. Check Logs.\n")
@@ -1498,14 +1533,16 @@ def Run_RAxML(Tree_Dir, Concatenated_Dir, RAxML, Threads, Log_Dir, GLIMPSe_Outpu
             RAxML_Log.write(SH_Output)
     try:
         import dendropy
+    except ImportError:
+        dendropy = None
+        shutil.copy(os.path.join(Tree_Dir, "RAxML_fastTreeSH_Support.SH"),
+                    os.path.join(GLIMPSe_Output_Dir, "Final_Tree.nwk"))
+    if dendropy:
         with open(os.path.join(Tree_Dir, "RAxML_fastTreeSH_Support.SH"), "r") as In_Tree:
             Tree = dendropy.Tree.get_from_string(In_Tree.readline(), "newick")
         Tree.ladderize(ascending=False)
         with open(os.path.join(GLIMPSe_Output_Dir, "Final_Tree.nwk"), "w") as Out_Tree:
             Out_Tree.write(Tree.as_string(schema='newick'))
-    except:
-        shutil.copy(os.path.join(Tree_Dir, "RAxML_fastTreeSH_Support.SH"),
-                    os.path.join(GLIMPSe_Output_Dir, "Final_Tree.nwk"))
 
 
 def GenomeID2GenomeName(Protein_Dir, Alignment_Dir, Genome_Dictionary):
@@ -1677,7 +1714,8 @@ def main():
     args = check_arguments()
     stdout_messenger = multiprocessing.Manager().Queue()
     stderr_messenger = multiprocessing.Manager().Queue()
-    Genome_Dir, Protein_Dir, Alignment_Dir, Concatenated_Dir, Tree_Dir, Log_Dir, GLIMPSe_Output_Dir, Dependency_Dir, Marker_Dir = Build_Output_Dirs(args.Output_Directory, stdout_messenger, stderr_messenger)
+    Genome_Dir, Protein_Dir, Alignment_Dir, Concatenated_Dir, Tree_Dir, Log_Dir, GLIMPSe_Output_Dir, Dependency_Dir, Marker_Dir = Build_Output_Dirs(
+        args.Output_Directory)
     CDHIT, JACKHMMER, HMMBUILD, HMMSEARCH, ClustalOmega, TrimAl, FastTree, RAxML, Threads = Prepare_Dependencies(Dependency_Dir, stdout_messenger, stderr_messenger)
     Core_Pipeline(args.Input_Directory, args.Target_Proteins, args.Protein_Distribution, args.Alignment_Filtering,
                   args.PAMatrix, args.POCP, args.AAI, args.Single_Copy, args.Marker_Proteins, args.Fast_Cluster,
