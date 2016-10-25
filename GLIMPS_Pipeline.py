@@ -524,10 +524,10 @@ def Process_Genome_Files(Input_Dir, Genome_Dir, Log_Dir, Output):
     else:
         with open(os.path.join(Genome_Dir, "ConcatenatedGenomeFiles"), "w") as AllGenomes:
             AllGenomes.writelines(AllGenomeProts)
-    with open(os.path.join(Log_Dir, "Genome_ID.csv"), "w") as GenDict:
-        GenDict.write("Genome ID,Genome Name\n")
+    with open(os.path.join(Log_Dir, "Genome_ID.tsv"), "w") as GenDict:
+        GenDict.write("Genome ID\tGenome Name\n")
         for key in sorted(Genome_Dictionary.keys()):
-            GenDict.write(key + "," + Genome_Dictionary[key] + "\n")
+            GenDict.write(key + "\t" + Genome_Dictionary[key] + "\n")
     return Genome_Dictionary
 
 
