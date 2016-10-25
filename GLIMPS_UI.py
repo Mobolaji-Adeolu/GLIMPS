@@ -10,6 +10,7 @@ import sys
 try:
     import Tkinter
 except ImportError:
+    Tkinter = None
     sys.exit("Required python module, Tkinter, is unavailable. Please install TKinter to use the GLIMPS GUI.")
 import os
 import subprocess
@@ -42,6 +43,7 @@ class GUI(ttk.Frame):
         self.MarkerSet.set("")
         self.hasIn = False
         self.hasOut = False
+        self.LenOK = False
         self.hasFasta = False
 
         # Virables for STDOUT box
@@ -309,6 +311,7 @@ class GUI(ttk.Frame):
             if Result == "Success":
                 self.Messenger()
                 sys.stdout.write("\nPipeline successfully completed.\n\n")
+                self.title = "Success"
                 self.text = 'Program completed successfully.\n\nOutput files located at ' + self.outFolder.get()
                 if sys.platform == 'darwin':
                     subprocess.check_call(['open', '--', self.outFolder.get()])
@@ -318,9 +321,11 @@ class GUI(ttk.Frame):
                     subprocess.check_call(['explorer', self.outFolder.get()])
             elif Result == "Fail":
                 self.Messenger()
+                self.title = "Error"
+                self.text = "Pipeline failure.\nCheck Logs."
                 sys.stderr.write("\nPipeline failure.\nCheck Logs.\n\n")
             self.Popup()
-        except :
+        except Exception:
             self.Messenger()
             self.parent.after(100, self.process_queue)
 
@@ -329,18 +334,22 @@ class GUI(ttk.Frame):
         for x in range(5):
             try:
                 sys.stdout.write(self.stdout_messenger.get_nowait())
-            except:
+            except Exception:
                 break
         for x in range(5):
             try:
                 sys.stderr.write(self.stderr_messenger.get_nowait())
-            except:
+            except Exception:
                 break
 
     def Popup(self):
         """Generates Info/Warning message boxes"""
         if self.title == "Error":
             tkMessageBox.showerror(self.title, self.text, parent=self)
+        elif self.title == "Warning":
+            if tkMessageBox.askokcancel(self.title, self.text, parent=self):
+                self.LenOK = True
+                self.check_inputs()
         else:
             tkMessageBox.showinfo(self.title, self.text, parent=self)
 
@@ -353,6 +362,10 @@ class GUI(ttk.Frame):
         elif not self.hasOut:
             self.title = 'Error'
             self.text = 'Please select an output folder.'
+            self.Popup()
+        elif not self.LenOK and sys.platform.startswith("win32") and len(self.outFolder.get()) > 100:
+            self.title = 'Warning'
+            self.text = 'Path to output directory is ' + str(len(self.outFolder.get())) + ' characters long. Paths in Windows are limited to 260 characters. This output directory may produce pipeline errors.'
             self.Popup()
         elif not self.hasFasta:
             self.TargetFasta.set('')
@@ -492,7 +505,7 @@ class AsyncTask(multiprocessing.Process):
         """Runs pipeline in a seperate process and reports success or failure, overwrites run in multiprocessing"""
         try:
             import GLIMPS_Pipeline
-            Genome_Dir, Protein_Dir, Alignment_Dir, Concatenated_Dir, Tree_Dir, Log_Dir, GLIMPSe_Output_Dir, Dependency_Dir, Marker_Dir = GLIMPS_Pipeline.Build_Output_Dirs(self.Output_Directory)
+            Genome_Dir, Protein_Dir, Alignment_Dir, Concatenated_Dir, Tree_Dir, Log_Dir, GLIMPSe_Output_Dir, Dependency_Dir, Marker_Dir = GLIMPS_Pipeline.Build_Output_Dirs(self.Output_Directory, self.stdout_messenger, self.stderr_messenger)
             GLIMPS_Pipeline.Core_Pipeline(self.Input_Directory, self.Target_Proteins, self.Protein_Distribution,
                                           self.Alignment_Filtering, self.PAMatrix, self.POCP, self.AAI, self.Single_Copy,
                                           self.Marker_Proteins, self.Fast_Clust, self.Fast_Phylo, self.Phylogeny,
@@ -502,7 +515,7 @@ class AsyncTask(multiprocessing.Process):
                                           self.ClustalOmega, self.TrimAl, self.FastTree, self.RAxML, self.Threads,
                                           self.stdout_messenger, self.stderr_messenger)
             self.Queue.put("Success")
-        except:
+        except Exception:
             self.Queue.put("Fail")
 
 

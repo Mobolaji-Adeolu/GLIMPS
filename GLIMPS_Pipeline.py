@@ -236,17 +236,27 @@ def check_arguments():
     return args
 
 
-def make_dir(dir_name):
+def make_dir(dir_name, Output):
     """Make/overwrite folders"""
-    try:
+    if not os.path.exists(dir_name):
         os.mkdir(dir_name)
-    except OSError:
+    else:
         shutil.rmtree(dir_name)
-        os.mkdir(dir_name)
+        count = 0
+        while os.path.exists(dir_name) and count < 15:
+            count += 1
+            time.sleep(1)
+        else:
+            try:
+                os.mkdir(dir_name)
+            except OSError:
+                Output.error("\nUnable to access directory: " + dir_name)
+                sys.exit()
 
 
-def Build_Output_Dirs(Output_Directory):
+def Build_Output_Dirs(Output_Directory, stdout_messenger, stderr_messenger):
     """Builds output directory structure"""
+    Output = GLIMPS_Writer(stdout_messenger, stderr_messenger)
     Genome_Dir = os.path.join(Output_Directory, "Data", "Genomes")
     Protein_Dir = os.path.join(Output_Directory, "Data", "Proteins")
     Alignment_Dir = os.path.join(Output_Directory, "Data", "Protein Alignments")
@@ -256,15 +266,16 @@ def Build_Output_Dirs(Output_Directory):
     GLIMPSe_Output_Dir = os.path.join(Output_Directory, "GLIMPSe Output")
     Dependency_Dir = os.path.join(os.path.dirname(sys.argv[0]), "Dependencies")
     Marker_Dir = os.path.join(os.path.dirname(sys.argv[0]), "PhyEco Marker Protein Families")
-    make_dir(Output_Directory)
-    make_dir(os.path.join(Output_Directory, "Data"))
-    make_dir(Genome_Dir)
-    make_dir(Protein_Dir)
-    make_dir(Alignment_Dir)
-    make_dir(Concatenated_Dir)
-    make_dir(Tree_Dir)
-    make_dir(Log_Dir)
-    make_dir(GLIMPSe_Output_Dir)
+    if not os.path.exists(Output_Directory):
+        os.mkdir(Output_Directory)
+    make_dir(os.path.join(Output_Directory, "Data"), Output)
+    make_dir(Genome_Dir, Output)
+    make_dir(Protein_Dir, Output)
+    make_dir(Alignment_Dir, Output)
+    make_dir(Concatenated_Dir, Output)
+    make_dir(Tree_Dir, Output)
+    make_dir(Log_Dir, Output)
+    make_dir(GLIMPSe_Output_Dir, Output)
     return Genome_Dir, Protein_Dir, Alignment_Dir, Concatenated_Dir, Tree_Dir, Log_Dir, GLIMPSe_Output_Dir, Dependency_Dir, Marker_Dir
 
 
@@ -708,7 +719,7 @@ def Remove_Changed_Clusters(Directory, Old_Clusters, New_Clusters):
 
 def Run_HMMBUILD(Alignment_Dir, Protein_Alignment, HMMBUILD, Output):
     """Runs HMMBuild subprocess"""
-    cmd = [HMMBUILD, os.path.join(Alignment_Dir, os.path.splitext(Protein_Alignment)[0]),
+    cmd = [HMMBUILD, "--cpu", "1", os.path.join(Alignment_Dir, os.path.splitext(Protein_Alignment)[0]),
            os.path.join(Alignment_Dir, Protein_Alignment)]
     HMMBUILD_Output = ""
     try:
@@ -724,7 +735,7 @@ def Run_HMMBUILD(Alignment_Dir, Protein_Alignment, HMMBUILD, Output):
 
 def Run_HMMSEARCH(Alignment_Dir, Protein_Alignment, index, Genome_Dir, Representative_File, HMMSEARCH, Output):
     """Runs HMMSearch subprocess"""
-    cmd = [HMMSEARCH, "-E", "1e-5", "--incE", "1e-20", "--noali", os.path.join(Alignment_Dir, Protein_Alignment),
+    cmd = [HMMSEARCH, "-E", "1e-5", "--incE", "1e-20", "--noali", "--cpu", "1", os.path.join(Alignment_Dir, Protein_Alignment),
            os.path.join(Genome_Dir, Representative_File)]
     HMMSEARCH_Output = ""
     try:
@@ -747,9 +758,7 @@ def HMM_Clustering(Genome_Dir, Alignment_Dir, HMMBUILD, HMMSEARCH, CDHIT_Cluster
     HMM_Clusters = [x[:] for x in CDHIT_Clusters]
     HMM_Cluster_Reps = [x[0] for x in HMM_Clusters]
     HMMBuildPool = multiprocessing.Pool(Threads)
-    HMMSearchPool = multiprocessing.Pool(Threads)
     HMMBUILDQueue = []
-    HMMSEARCHQueue = []
     for Protein_Alignment in os.listdir(Alignment_Dir):
         if os.path.splitext(Protein_Alignment)[1].lower() in Accepted_Filetypes and not os.path.exists(
                 os.path.splitext(Protein_Alignment)[0]):
@@ -765,6 +774,8 @@ def HMM_Clustering(Genome_Dir, Alignment_Dir, HMMBUILD, HMMSEARCH, CDHIT_Cluster
     Alignments.sort()
     Profiles.sort()
     Output.write("Performing profile HMM searches using HMMSearch...\n")
+    HMMSearchPool = multiprocessing.Pool(Threads)
+    HMMSEARCHQueue = []
     for index, Protein_Alignment in enumerate(Profiles):
         HMMSEARCHQueue.append(HMMSearchPool.apply_async(Run_HMMSEARCH, args=(Alignment_Dir, Protein_Alignment, index, Genome_Dir, Representative_File, HMMSEARCH, Output)))
     HMMSearchOut = [result.get() for result in HMMSEARCHQueue]
@@ -780,7 +791,7 @@ def HMM_Clustering(Genome_Dir, Alignment_Dir, HMMBUILD, HMMSEARCH, CDHIT_Cluster
         Primary_Cluster_Whole = CDHIT_Clusters_Only_Multi[int(Profiles[output[0]].split("_")[-1]) - 1]
         try:
             Primary_Index = HMM_Clusters.index(Primary_Cluster_Whole)
-        except IndexError:
+        except (IndexError, ValueError):
             continue
         Primary_Genomes = [ID[:5] for ID in HMM_Clusters[Primary_Index]]
         for ID in Primary_Genomes:
@@ -806,7 +817,7 @@ def HMM_Clustering(Genome_Dir, Alignment_Dir, HMMBUILD, HMMSEARCH, CDHIT_Cluster
                                 del HMM_Clusters[Secondary_Index]
                                 del HMM_Cluster_Reps[Secondary_Index]
                             break
-                        except IndexError:
+                        except (IndexError, ValueError):
                             continue
     return HMM_Clusters
 
@@ -1129,8 +1140,35 @@ def Determine_Protein_Distribution(Protein_Distribution, Protein_Clusters, Genom
     return Accepted_Proteins
 
 
+def Calculate_AIs(Alignment_Dir, Alignment, AIs):
+    """Calculates Aamino Acid Identity for a given amino acid alignment"""
+    curr_key = ""
+    Percent_ID = 0.0
+    Aligned_Seqs = Parse_Fasta(os.path.join(Alignment_Dir, Alignment))
+    for key_1 in sorted(Aligned_Seqs.keys()):
+        for key_2 in sorted(Aligned_Seqs.keys()):
+            if sorted(Aligned_Seqs.keys()).index(key_2) > sorted(Aligned_Seqs.keys()).index(key_1):
+                for key in AIs.keys():
+                    if key_1[1:5] in key and key_2[1:5] in key and Alignment not in [Align[0] for Align in AIs[key]]:
+                        curr_key = key
+                        identical = 0
+                        length_1 = 0
+                        length_2 = 0
+                        for index, char in enumerate(Aligned_Seqs[key_1]):
+                            if char == Aligned_Seqs[key_2][index]:
+                                if char != "-":
+                                    identical += 1
+                            if char != "-":
+                                length_1 += 1
+                            if Aligned_Seqs[key_2][index] != "-":
+                                length_2 += 1
+                        Percent_ID = float(identical) / float(min(length_1, length_2))
+    Return_Tuple = (curr_key, Alignment, Percent_ID)
+    return Return_Tuple
+
+
 # Alignment and trimming of proteins is handled by the following functions
-def Calculate_AAI(Alignment_Dir, Genome_Dictionary, Log_Dir, GLIMPSe_Output_Dir):
+def Calculate_AAI(Alignment_Dir, Genome_Dictionary, Log_Dir, GLIMPSe_Output_Dir, Threads):
     """Generates AAI matrix"""
     IDs = sorted(Genome_Dictionary.keys())
     AIs = {}
@@ -1139,29 +1177,16 @@ def Calculate_AAI(Alignment_Dir, Genome_Dictionary, Log_Dir, GLIMPSe_Output_Dir)
             if IDs.index(ID_2) > IDs.index(ID_1):
                 AIs[(ID_1, ID_2)] = []
     Accepted_Filetypes = [".fasta", ".fsa", ".faa", ".fas"]
-    # Could be parallelized
+    AIPool = multiprocessing.Pool(Threads)
+    AIQueue = []
     for Alignment in os.listdir(Alignment_Dir):
         if os.path.splitext(Alignment)[1].lower() in Accepted_Filetypes:
-            Aligned_Seqs = Parse_Fasta(os.path.join(Alignment_Dir, Alignment))
-            for key_1 in sorted(Aligned_Seqs.keys()):
-                for key_2 in sorted(Aligned_Seqs.keys()):
-                    if sorted(Aligned_Seqs.keys()).index(key_2) > sorted(Aligned_Seqs.keys()).index(key_1):
-                        for key in AIs.keys():
-                            if key_1[1:5] in key and key_2[1:5] in key and Alignment not in [Align[0] for Align in
-                                                                                             AIs[key]]:
-                                identical = 0
-                                length_1 = 0
-                                length_2 = 0
-                                for index, char in enumerate(Aligned_Seqs[key_1]):
-                                    if char == Aligned_Seqs[key_2][index]:
-                                        if char != "-":
-                                            identical += 1
-                                    if char != "-":
-                                        length_1 += 1
-                                    if Aligned_Seqs[key_2][index] != "-":
-                                        length_2 += 1
-                                Percent_ID = float(identical) / float(min(length_1, length_2))
-                                AIs[key].append((Alignment, Percent_ID))
+            AIQueue.append(AIPool.apply_async(func=Calculate_AIs, args=(Alignment_Dir, Alignment, AIs)))
+    AIOut = [result.get() for result in AIQueue]
+    AIPool.close()
+    AIPool.join()
+    for result in AIOut:
+        AIs[result[0]].append((result[1], result[2]))
     AAIs = {}
     for key in sorted(AIs.keys()):
         AI_List = []
@@ -1183,7 +1208,7 @@ def Calculate_AAI(Alignment_Dir, Genome_Dictionary, Log_Dir, GLIMPSe_Output_Dir)
                 AAI_Matrix[IDs.index(ID) + 1] += "\t" + str(AAIs[key])
         else:
             AAI_Matrix[IDs.index(ID) + 1] += "\t" + "1"
-    with open(os.path.join(Log_Dir, "Amino Acid Identities.txt"), "w") as Log:
+    with open(os.path.join(Log_Dir, "Amino Acid Identities.tsv"), "w") as Log:
         Log.write("Genome 1\tGenome 2\tAmino Acid Identities\n")
         for key in sorted(AIs.keys()):
             Log.write(Genome_Dictionary[key[0]] + "\t" + Genome_Dictionary[key[1]])
@@ -1200,7 +1225,7 @@ def Align_Proteins(Protein_Dir, Protein_File, Alignment_Dir, ClustalOmega, Count
     ClustalOmega_Output = ""
     Accepted_Filetypes = [".fasta", ".fsa", ".faa", ".fas"]
     if os.path.splitext(Protein_File)[1].lower() in Accepted_Filetypes:
-        cmd = [ClustalOmega, "-v", "--force", "-i", os.path.join(Protein_Dir, Protein_File), "-o",
+        cmd = [ClustalOmega, "-v", "--force", "--threads=1", "-i", os.path.join(Protein_Dir, Protein_File), "-o",
                os.path.join(Alignment_Dir, Protein_File)]
         try:
             ClustalOmega_Output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
@@ -1652,7 +1677,7 @@ def Core_Pipeline(Input_Directory, Target_Proteins, Protein_Distribution, Alignm
         ClustalOmega_Time = time.time() - ClustalOmega_Start
         Output.write("All ClustalOmega alignments complete.\n")
         Output.write("Producing Average Amino Acid Identity Matrix...\n")
-        Calculate_AAI(Alignment_Dir, Genome_Dictionary, Log_Dir, GLIMPSe_Output_Dir)
+        Calculate_AAI(Alignment_Dir, Genome_Dictionary, Log_Dir, GLIMPSe_Output_Dir, Threads)
         Output.write("Average Amino Acid Identity Matrix Produced.\n")
     elif not AAI:
         ParallelAlignment(Protein_Dir, Alignment_Dir, ClustalOmega, Log_Dir, Threads, False, Accepted_Proteins, Output)
@@ -1715,7 +1740,7 @@ def main():
     stdout_messenger = multiprocessing.Manager().Queue()
     stderr_messenger = multiprocessing.Manager().Queue()
     Genome_Dir, Protein_Dir, Alignment_Dir, Concatenated_Dir, Tree_Dir, Log_Dir, GLIMPSe_Output_Dir, Dependency_Dir, Marker_Dir = Build_Output_Dirs(
-        args.Output_Directory)
+        args.Output_Directory, stdout_messenger, stderr_messenger)
     CDHIT, JACKHMMER, HMMBUILD, HMMSEARCH, ClustalOmega, TrimAl, FastTree, RAxML, Threads = Prepare_Dependencies(Dependency_Dir, stdout_messenger, stderr_messenger)
     Core_Pipeline(args.Input_Directory, args.Target_Proteins, args.Protein_Distribution, args.Alignment_Filtering,
                   args.PAMatrix, args.POCP, args.AAI, args.Single_Copy, args.Marker_Proteins, args.Fast_Cluster,
