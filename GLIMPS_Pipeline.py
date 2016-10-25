@@ -1421,25 +1421,22 @@ def Run_FastTree(Tree_Dir, Concatenated_Dir, FastTree, Log_Dir, Output):
     Input_Alignment = os.path.join(Concatenated_Dir, "Concatenated_Alignment.fasta")
     Output_Tree = os.path.join(Tree_Dir, "FastTree.nwk")
     FastTree_Output = ""
+    cmd = [FastTree,
+           "-spr",
+           "6",
+           "-mlacc",
+           "3",
+           "-slownni",
+           "-slow",
+           "-nosupport",
+           "-out",
+           Output_Tree,
+           Input_Alignment
+           ]
     try:
-        FastTree_Output = subprocess.Popen([
-            FastTree,
-            "-spr",
-            "6",
-            "-mlacc",
-            "3",
-            "-slownni",
-            "-slow",
-            "-nosupport",
-            "-out",
-            Output_Tree,
-            Input_Alignment
-        ],
-            stderr=subprocess.STDOUT,
-            stdout=subprocess.PIPE
-        ).communicate()[0]
+        FastTree_Output = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
         if os.path.getsize(Output_Tree) == 0:
-            raise subprocess.CalledProcessError
+            raise subprocess.CalledProcessError(1, str(cmd), str(FastTree_Output))
         else:
             with open(os.path.join(Log_Dir, "FastTree.txt"), "a") as FastTree_Log:
                 FastTree_Log.write(FastTree_Output)
@@ -1455,24 +1452,21 @@ def Run_FastTree_Full(Tree_Dir, Concatenated_Dir, FastTree, Log_Dir, Output, GLI
     Input_Alignment = os.path.join(Concatenated_Dir, "Concatenated_Alignment.fasta")
     Output_Tree = os.path.join(Tree_Dir, "FastTree.nwk")
     FastTree_Output = ""
+    cmd = [FastTree,
+           "-spr",
+           "6",
+           "-mlacc",
+           "3",
+           "-slownni",
+           "-slow",
+           "-out",
+           Output_Tree,
+           Input_Alignment
+           ]
     try:
-        FastTree_Output = subprocess.Popen([
-            FastTree,
-            "-spr",
-            "6",
-            "-mlacc",
-            "3",
-            "-slownni",
-            "-slow",
-            "-out",
-            Output_Tree,
-            Input_Alignment
-        ],
-            stderr=subprocess.STDOUT,
-            stdout=subprocess.PIPE
-        ).communicate()[0]
+        FastTree_Output = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
         if os.path.getsize(Output_Tree) == 0:
-            raise subprocess.CalledProcessError
+            raise subprocess.CalledProcessError(1, str(cmd), str(FastTree_Output))
         else:
             with open(os.path.join(Log_Dir, "FastTree.txt"), "a") as FastTree_Log:
                 FastTree_Log.write(FastTree_Output)
@@ -1501,9 +1495,7 @@ def Run_RAxML(Tree_Dir, Concatenated_Dir, RAxML, Threads, Log_Dir, GLIMPSe_Outpu
     Input_FastTree = os.path.join(Tree_Dir, "FastTree.nwk")
     Input_RAxML = os.path.join(Tree_Dir, "RAxML_result.ML")
     RAxML_Output = ""
-    try:
-        RAxML_Output = subprocess.Popen([
-            RAxML,
+    cmd = [RAxML,
             "-f",
             "d",
             "-F",
@@ -1521,38 +1513,40 @@ def Run_RAxML(Tree_Dir, Concatenated_Dir, RAxML, Threads, Log_Dir, GLIMPSe_Outpu
             Input_Alignment,
             "-w",
             Tree_Dir
-        ],
-            stderr=subprocess.STDOUT,
-            stdout=subprocess.PIPE
-        ).communicate()[0]
+           ]
+    try:
+        RAxML_Output = subprocess.Popen(cmd, stderr=subprocess.STDOUT, stdout=subprocess.PIPE).communicate()[0]
+        count = 0
+        while not os.path.exists(Input_RAxML) and count < 15:
+                count += 1
+                time.sleep(1)
         if not os.path.exists(Input_RAxML):
-            raise subprocess.CalledProcessError
+            raise subprocess.CalledProcessError(1, str(cmd), str(RAxML_Output))
     except (subprocess.CalledProcessError, OSError):
         with open(os.path.join(Log_Dir, "RAxML.txt"), "w") as RAxML_Log:
             RAxML_Log.write(RAxML_Output)
         Output.error("\n\nRAxML Error. Check Logs.\n")
         sys.exit()
     else:
-        SH_Output = subprocess.check_output([
-            RAxML,
-            "-f",
-            "J",
-            "-T",
-            str(Threads),
-            "-m",
-            "PROTCATLG",
-            "-n",
-            "SH",
-            "-p",
-            str(random.randrange(1, 100000)),
-            "-t",
-            Input_RAxML,
-            "-s",
-            Input_Alignment,
-            "-w",
-            Tree_Dir
-        ],
-            stderr=subprocess.STDOUT)
+        cmd = [RAxML,
+               "-f",
+               "J",
+               "-T",
+               str(Threads),
+               "-m",
+               "PROTCATLG",
+               "-n",
+               "SH",
+               "-p",
+               str(random.randrange(1, 100000)),
+               "-t",
+               Input_RAxML,
+               "-s",
+               Input_Alignment,
+               "-w",
+               Tree_Dir
+               ]
+        SH_Output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
         with open(os.path.join(Log_Dir, "RAxML.txt"), "w") as RAxML_Log:
             RAxML_Log.write(RAxML_Output)
             RAxML_Log.write(SH_Output)
