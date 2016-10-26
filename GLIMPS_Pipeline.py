@@ -460,7 +460,7 @@ def Prepare_Dependencies(Dependency_Dir, stdout_messenger, stderr_messenger):
 # Initial processing of genome files are handled by the following functions
 def Replace_Chars(Text):
     """Replaces special characters in genome names"""
-    Replacement_Dict = {" ": "_", "'": "", ":": "_", "/": "_", ",": "_"}
+    Replacement_Dict = {" ": "_", "'": "", ":": "_", "/": "_", ",": "_", "(": "_", ")": "_"}
     for target, replacement in Replacement_Dict.iteritems():
         Text = Text.replace(target, replacement)
     return Text
