@@ -1142,29 +1142,31 @@ def Determine_Protein_Distribution(Protein_Distribution, Protein_Clusters, Genom
 
 def Calculate_AIs(Alignment_Dir, Alignment, AIs):
     """Calculates Aamino Acid Identity for a given amino acid alignment"""
-    curr_key = ""
+    AI_Dict = {}
     Percent_ID = 0.0
     Aligned_Seqs = Parse_Fasta(os.path.join(Alignment_Dir, Alignment))
-    for key_1 in sorted(Aligned_Seqs.keys()):
-        for key_2 in sorted(Aligned_Seqs.keys()):
-            if sorted(Aligned_Seqs.keys()).index(key_2) > sorted(Aligned_Seqs.keys()).index(key_1):
-                for key in AIs.keys():
-                    if key_1[1:5] in key and key_2[1:5] in key and Alignment not in [Align[0] for Align in AIs[key]]:
-                        curr_key = key
-                        identical = 0
-                        length_1 = 0
-                        length_2 = 0
-                        for index, char in enumerate(Aligned_Seqs[key_1]):
-                            if char == Aligned_Seqs[key_2][index]:
-                                if char != "-":
-                                    identical += 1
+    Sorted_Seqs = sorted(Aligned_Seqs.keys())
+    for index_1, key_1 in enumerate(Sorted_Seqs):
+        for index_2 in range(index_1 + 1,len(Sorted_Seqs)):
+            key_2 = Sorted_Seqs[index_2]
+            for key in AIs.keys():
+                if key_1[1:5] in key and key_2[1:5] in key:
+                    identical = 0
+                    length_1 = 0
+                    length_2 = 0
+                    for index, char in enumerate(Aligned_Seqs[key_1]):
+                        if char == Aligned_Seqs[key_2][index]:
                             if char != "-":
-                                length_1 += 1
-                            if Aligned_Seqs[key_2][index] != "-":
-                                length_2 += 1
-                        Percent_ID = float(identical) / float(min(length_1, length_2))
-    Return_Tuple = (curr_key, Alignment, Percent_ID)
-    return Return_Tuple
+                                identical += 1
+                        if char != "-":
+                            length_1 += 1
+                        if Aligned_Seqs[key_2][index] != "-":
+                            length_2 += 1
+                    Percent_ID = float(identical) / float(min(length_1, length_2))
+                    AI_Dict[key] = Percent_ID
+                    break
+    Return_List = [Alignment, AI_Dict]
+    return Return_List
 
 
 # Alignment and trimming of proteins is handled by the following functions
@@ -1186,7 +1188,9 @@ def Calculate_AAI(Alignment_Dir, Genome_Dictionary, Log_Dir, GLIMPSe_Output_Dir,
     AIPool.close()
     AIPool.join()
     for result in AIOut:
-        AIs[result[0]].append((result[1], result[2]))
+        Align = result[0]
+        for key in result[1].keys():
+            AIs[key].append((Align, result[1][key]))
     AAIs = {}
     for key in sorted(AIs.keys()):
         AI_List = []
@@ -1203,11 +1207,14 @@ def Calculate_AAI(Alignment_Dir, Genome_Dictionary, Log_Dir, GLIMPSe_Output_Dir,
     for ID in IDs:
         AAI_Matrix[0] += "\t" + Genome_Dictionary[ID]
         AAI_Matrix.insert(IDs.index(ID) + 1, "\n" + Genome_Dictionary[ID])
-        for key in sorted(AAIs.keys()):
-            if ID == key[1]:
-                AAI_Matrix[IDs.index(ID) + 1] += "\t" + str(AAIs[key])
+        for key_1 in sorted(AAIs.keys()):
+            if ID == key_1[1]:
+                AAI_Matrix[IDs.index(ID) + 1] += "\t" + str(AAIs[key_1])
         else:
             AAI_Matrix[IDs.index(ID) + 1] += "\t" + "1"
+            for key_2 in sorted(AAIs.keys()):
+                if ID == key_2[0]:
+                    AAI_Matrix[IDs.index(ID) + 1] += "\t" + str(AAIs[key_2])
     with open(os.path.join(Log_Dir, "Amino Acid Identities.tsv"), "w") as Log:
         Log.write("Genome 1\tGenome 2\tAmino Acid Identities\n")
         for key in sorted(AIs.keys()):
