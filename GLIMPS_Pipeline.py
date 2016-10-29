@@ -16,6 +16,7 @@ import time
 import argparse
 import re
 import tempfile
+import tarfile
 
 
 class GLIMPS_Writer:
@@ -465,7 +466,7 @@ def Replace_Chars(Text):
         Text = Text.replace(target, replacement)
     return Text
 
-
+# TODO Detect and tranlate nucleotide sequences
 def Process_Genome_Files(Input_Dir, Genome_Dir, Log_Dir, Output):
     """Copies genome files to data directory and assigns IDs to proteins"""
     Genome_Dictionary = {}
@@ -496,7 +497,7 @@ def Process_Genome_Files(Input_Dir, Genome_Dir, Log_Dir, Output):
                     elif line[0].isalpha() and ProteinID > 0:
                         line_content = []
                         for char in line:
-                            if char in "BZJX":
+                            if char in "OUBZJX":
                                 char = "-"
                             if char.isalpha() and Char_Count < 60:
                                 Char_Count += 1
@@ -714,7 +715,9 @@ def Remove_Changed_Clusters(Directory, Old_Clusters, New_Clusters):
                 if os.path.exists(Path):
                     Rename_Dict[str(Old_Clusters.index(ProtFam))] = (os.path.basename(Path), "Protein_Family_" + str(New_Clusters.index(ProtFam) + 1))
     for key in sorted(Rename_Dict.keys()):
-        os.rename(os.path.join(Directory, Rename_Dict[key][0]), os.path.join(Directory, Rename_Dict[key][1]))
+        if os.path.exists(os.path.join(Directory, Rename_Dict[key][1])):
+            os.remove(os.path.join(Directory, Rename_Dict[key][1]))
+        shutil.move(os.path.join(Directory, Rename_Dict[key][0]), os.path.join(Directory, Rename_Dict[key][1]))
 
 
 def Run_HMMBUILD(Alignment_Dir, Protein_Alignment, HMMBUILD, Output):
@@ -978,6 +981,9 @@ def Marker_HMMSEARCH(Marker_Names, Marker_File, ConcatenatedGenomeFile, HMMSEARC
 def Find_Marker_Proteins(Genome_Dir, Protein_Dir, GLIMPSe_Output_Dir, Genome_Dictionary, HMMSEARCH, PAMatrix, Log_Dir, Marker_Dir, Marker_Proteins, Output):
     """Protein family identification using PhyEco marker sets"""
     Marker_File = os.path.join(Marker_Dir, Marker_Proteins + ".hmm")
+    if not os.path.exists(Marker_File):
+        Output.error("Cannot locate selected PhyEco marker set HMM profiles.\n")
+        sys.exit()
     ConcatenatedGenomeFile = os.path.join(Genome_Dir, "ConcatenatedGenomeFiles")
     Concat_Gen_Dict = Parse_Fasta(ConcatenatedGenomeFile)
     Marker_Names = Parse_HMM(Marker_File)
@@ -1333,7 +1339,7 @@ def Create_Weighted_Alignments(Alignment_Dir, Accepted_Proteins, TrimAl, Output)
                         Weighted_Alignment.write(Weighted_Sequence)
     return Alignment_Length
 
-
+# TODO Add option to filter all completely conserved sites in alignment
 def Create_Trimmed_Alignments(Alignment_Dir, Accepted_Proteins, TrimAl, Output):
     """Generates trimmed alignments"""
     for Alignment_File in Accepted_Proteins:
@@ -1423,6 +1429,7 @@ def Concatenate_Alignments(Accepted_Proteins, Alignment_Dir, Concatenated_Dir, G
 
 
 # Phylogenetic tree construction is handled by the following functions
+# TODO Add option to build individual phylogenetic tree for each protein
 def Run_FastTree(Tree_Dir, Concatenated_Dir, FastTree, Log_Dir, Output):
     """Builds a phylogenetic tree using FastTree"""
     Input_Alignment = os.path.join(Concatenated_Dir, "Concatenated_Alignment.fasta")
@@ -1640,6 +1647,14 @@ def Core_Pipeline(Input_Directory, Target_Proteins, Protein_Distribution, Alignm
     Output = GLIMPS_Writer(stdout_messenger, stderr_messenger)
     Pipeline_Start = time.time()
     Output.write(":::PIPELINE PREPERATION:::\n")
+    if not os.path.exists(os.path.join(Marker_Dir, "bacteria.hmm")):
+        Output.write("Extracting PhyEco Marker proteins...\n")
+        try:
+            with tarfile.open(os.path.join(Marker_Dir, "PhyEco Marker Protein Families.tar.bz2"), "r:bz2") as PhyEco:
+                PhyEco.extractall(Marker_Dir)
+            Output.write("PhyEco Marker proteins extracted.\n")
+        except IOError:
+            Output.error("Unable to detect or extract all PhyEco Markers.\n")
     Output.write("Initial processing of input files...\n")
     Genome_Dictionary = Process_Genome_Files(Input_Directory, Genome_Dir, Log_Dir, Output)
     Output.write("Initial processing of input files complete.\n")
@@ -1648,11 +1663,9 @@ def Core_Pipeline(Input_Directory, Target_Proteins, Protein_Distribution, Alignm
     if os.path.exists(Target_Proteins):
         Output.write("Identifying protein families...\n")
         HMMer_Start = time.time()
-        Protein_Clusters = Find_Proteins(Genome_Dir, Protein_Dir, GLIMPSe_Output_Dir, Genome_Dictionary,
-                                         Target_Proteins, JACKHMMER, PAMatrix, Log_Dir, Output)
+        Protein_Clusters = Find_Proteins(Genome_Dir, Protein_Dir, GLIMPSe_Output_Dir, Genome_Dictionary, Target_Proteins, JACKHMMER, PAMatrix, Log_Dir, Output)
         HMMer_Time = time.time() - HMMer_Start
-        Accepted_Proteins = Determine_Protein_Distribution(Protein_Distribution, Protein_Clusters, Genome_Dictionary,
-                                                           Output)
+        Accepted_Proteins = Determine_Protein_Distribution(Protein_Distribution, Protein_Clusters, Genome_Dictionary, Output)
         Output.write("All protein families identiefied.\n")
     elif Marker_Proteins != "":
         Output.write("Identifying protein families...\n")
