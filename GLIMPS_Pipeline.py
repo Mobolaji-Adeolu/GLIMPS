@@ -1346,7 +1346,6 @@ def Create_Weighted_Alignments(Alignment_Dir, Accepted_Proteins, TrimAl, Output)
                         Weighted_Alignment.write(Weighted_Sequence)
     return Alignment_Length
 
-# TODO Add option to filter all completely conserved sites in alignment
 def Create_Trimmed_Alignments(Alignment_Dir, Accepted_Proteins, TrimAl, Polymorphic, Output):
     """Generates trimmed alignments"""
     for Alignment_File in Accepted_Proteins:
@@ -1670,14 +1669,16 @@ def Core_Pipeline(Input_Directory, Target_Proteins, Protein_Distribution, Alignm
     Output = GLIMPS_Writer(stdout_messenger, stderr_messenger)
     Pipeline_Start = time.time()
     Output.write(":::PIPELINE PREPERATION:::\n")
-    if not os.path.exists(os.path.join(Marker_Dir, "bacteria.hmm")):
-        Output.write("Extracting PhyEco Marker proteins...\n")
-        try:
-            with tarfile.open(os.path.join(Marker_Dir, "PhyEco Marker Protein Families.tar.bz2"), "r:bz2") as PhyEco:
-                PhyEco.extractall(Marker_Dir)
-            Output.write("PhyEco Marker proteins extracted.\n")
-        except IOError:
-            Output.error("Unable to detect or extract all PhyEco Markers.\n")
+    if Marker_Proteins != "":
+        if not os.path.exists(os.path.join(Marker_Dir, Marker_Proteins + ".hmm")):
+            Output.write("Extracting PhyEco Marker proteins...\n")
+            try:
+                with tarfile.open(os.path.join(Marker_Dir, "PhyEco Marker Protein Families.tar.bz2"), "r:bz2") as PhyEco:
+                    PhyEco.extractall(Marker_Dir)
+                Output.write("PhyEco Marker proteins extracted.\n")
+            except IOError:
+                Output.error("Unable to detect or extract all PhyEco Markers.\n")
+                sys.exit()
     Output.write("Initial processing of input files...\n")
     Genome_Dictionary = Process_Genome_Files(Input_Directory, Genome_Dir, Log_Dir, Output)
     Output.write("Initial processing of input files complete.\n")
