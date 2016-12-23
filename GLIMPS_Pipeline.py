@@ -6,17 +6,17 @@ Department of Biochemistry and Biomedical Sciences
 McMaster University.
 Copyright 2016."""
 
-import os
-import shutil
-import sys
-import subprocess
-import multiprocessing
-import random
-import time
 import argparse
+import multiprocessing
+import os
+import random
 import re
-import tempfile
+import shutil
+import subprocess
+import sys
 import tarfile
+import tempfile
+import time
 
 
 class GLIMPS_Writer:
@@ -158,6 +158,13 @@ def check_arguments():
         default=False,
         required=False,
         help="Skips all phylogenetic tree building steps",
+    )
+    arguments.add_argument(
+        "--Polymorphic",
+        action="store_true",
+        default=False,
+        required=False,
+        help="Trims invariant sites from multiple sequence alignments",
     )
     arguments.add_argument(
         "-f", "--Alignment_Filtering",
@@ -543,14 +550,14 @@ def CDHIT_Subprocess(CDHIT, Log_Dir, Output, Input_File, Output_File, Threshold,
     except subprocess.CalledProcessError as call_err:
         with open(os.path.join(Log_Dir, "CDHIT.txt"), "a") as CDHIT_Log:
             CDHIT_Log.write(CDHIT_Output)
-            CDHIT_Log.write("\n\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output))
-        Output.error("\n\nCD-HIT Error. Check Logs.\n")
+            CDHIT_Log.write("\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output))
+        Output.error("\nCD-HIT Error. Check Logs.\n")
         sys.exit()
     except OSError as os_err:
         with open(os.path.join(Log_Dir, "CDHIT.txt"), "a") as CDHIT_Log:
             CDHIT_Log.write(CDHIT_Output)
-            CDHIT_Log.write("\n\n" + str(os_err.strerror))
-        Output.error("\n\nCD-HIT Error. Check Logs.\n")
+            CDHIT_Log.write("\n" + str(os_err.strerror))
+        Output.error("\nCD-HIT Error. Check Logs.\n")
         sys.exit()
     with open(os.path.join(Log_Dir, "CDHIT.txt"), "a") as CDHIT_Log:
         CDHIT_Log.write(CDHIT_Output)
@@ -603,7 +610,7 @@ def Run_CDHIT(Genome_Dir, CDHIT, Log_Dir, ConcatenatedGenomeFile, Output):
         time.sleep(0.1)
         Wait_Count += 1
         if Wait_Count > 30:
-            Output.error("\n\nGLIMPSe pipeline Error. Check Logs.\n")
+            Output.error("\nGLIMPSe pipeline Error. Check Logs.\n")
             sys.exit()
     Clusters = Parse_Clusters(Clusters, Output_File)
     Input_File = Output_File
@@ -616,7 +623,7 @@ def Run_CDHIT(Genome_Dir, CDHIT, Log_Dir, ConcatenatedGenomeFile, Output):
         time.sleep(0.1)
         Wait_Count += 1
         if Wait_Count > 30:
-            Output.error("\n\nGLIMPSe pipeline Error. Check Logs.\n")
+            Output.error("\nGLIMPSe pipeline Error. Check Logs.\n")
             sys.exit()
     Clusters = Parse_Clusters(Clusters, Output_File)
     Input_File = Output_File
@@ -629,7 +636,7 @@ def Run_CDHIT(Genome_Dir, CDHIT, Log_Dir, ConcatenatedGenomeFile, Output):
         time.sleep(0.1)
         Wait_Count += 1
         if Wait_Count > 30:
-            Output.error("\n\nGLIMPSe pipeline Error. Check Logs.\n")
+            Output.error("\nGLIMPSe pipeline Error. Check Logs.\n")
             sys.exit()
     Clusters = Parse_Clusters(Clusters, Output_File)
     Input_File = Output_File
@@ -642,7 +649,7 @@ def Run_CDHIT(Genome_Dir, CDHIT, Log_Dir, ConcatenatedGenomeFile, Output):
         time.sleep(0.1)
         Wait_Count += 1
         if Wait_Count > 30:
-            Output.error("\n\nGLIMPSe pipeline Error. Check Logs.\n")
+            Output.error("\nGLIMPSe pipeline Error. Check Logs.\n")
             sys.exit()
     Clusters = Parse_Clusters(Clusters, Output_File)
     return Clusters, Output_File
@@ -728,11 +735,11 @@ def Run_HMMBUILD(Alignment_Dir, Protein_Alignment, HMMBUILD, Output):
     try:
         HMMBUILD_Output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as call_err:
-        HMMBUILD_Output += "\n\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output)
-        Output.error("\n\nHMMBUILD Error. Check Logs.\n")
+        HMMBUILD_Output += "\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output)
+        Output.error("\nHMMBUILD Error. Check Logs.\n")
     except OSError as os_err:
-        HMMBUILD_Output += "\n\n" + str(os_err.strerror)
-        Output.error("\n\nHMMBUILD Error. Check Logs.\n")
+        HMMBUILD_Output += "\n" + str(os_err.strerror)
+        Output.error("\nHMMBUILD Error. Check Logs.\n")
     return HMMBUILD_Output
 
 
@@ -744,11 +751,11 @@ def Run_HMMSEARCH(Alignment_Dir, Protein_Alignment, index, Genome_Dir, Represent
     try:
         HMMSEARCH_Output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as call_err:
-        HMMSEARCH_Output += "\n\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output)
-        Output.error("\n\nHMMSEARCH Error. Check Logs.\n")
+        HMMSEARCH_Output += "\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output)
+        Output.error("\nHMMSEARCH Error. Check Logs.\n")
     except OSError as os_err:
-        HMMSEARCH_Output += "\n\n" + str(os_err.strerror)
-        Output.error("\n\nHMMSEARCH Error. Check Logs.\n")
+        HMMSEARCH_Output += "\n" + str(os_err.strerror)
+        Output.error("\nHMMSEARCH Error. Check Logs.\n")
     Return_Tuple = (index, HMMSEARCH_Output)
     return Return_Tuple
 
@@ -845,7 +852,7 @@ def ClusterCoreProts(Genome_Dir, Protein_Dir, Alignment_Dir, CDHIT, ClustalOmega
     if Fast_Cluster:
         return CDHIT_Clusters_Only_Multi, Concat_Gen_Dict
     else:
-        Output.write("Aligning " + str(len(os.listdir(Protein_Dir))) + " protein families...\n")
+        Output.write("Aligning " + str(len(os.listdir(Protein_Dir))) + " putative protein families...\n")
         ParallelAlignment(Protein_Dir, Alignment_Dir, ClustalOmega, Log_Dir, Threads, True, [], Output)
         Output.write("Protein family alignment step complete.\n")
         Output.write("Building HMM profiles for protein families...\n")
@@ -856,10 +863,10 @@ def ClusterCoreProts(Genome_Dir, Protein_Dir, Alignment_Dir, CDHIT, ClustalOmega
         Remove_Changed_Clusters(Protein_Dir, CDHIT_Clusters_Only_Multi, HMM_Clusters_Only_Multi_1)
         Remove_Changed_Clusters(Alignment_Dir, CDHIT_Clusters_Only_Multi, HMM_Clusters_Only_Multi_1)
         Create_Prot_Files(Protein_Dir, Concat_Gen_Dict, HMM_Clusters_Only_Multi_1)
-        Output.write("Aligning additionally identified protein families...\n")
+        Output.write("Aligning modified protein families...\n")
         ParallelAlignment(Protein_Dir, Alignment_Dir, ClustalOmega, Log_Dir, Threads, True, [], Output)
         HMM_Representative_File(Genome_Dir, Concat_Gen_Dict, HMM_Clusters_1)
-        Output.write("Building HMM profiles for additionally identified protein families...\n")
+        Output.write("Building HMM profiles for modified protein families...\n")
         HMM_Clusters_2 = HMM_Clustering(Genome_Dir, Alignment_Dir, HMMBUILD, HMMSEARCH, HMM_Clusters_1,
                                         HMM_Clusters_Only_Multi_1, Log_Dir, "HMM_Clusters", Threads, Output)
         HMM_Clusters_Only_Multi_2 = Remove_Singletons(HMM_Clusters_2)
@@ -879,13 +886,13 @@ def Run_JACKHMMER(Input_Fasta_Dict, Target_Proteins, ConcatenatedGenomeFile, JAC
     except subprocess.CalledProcessError as call_err:
         with open(os.path.join(Log_Dir, "JACKHMMER.txt"), "a") as HMMer_Log:
             HMMer_Log.write(JACKHMMER_Output)
-            HMMer_Log.write("\n\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output))
-        Output.error("\n\nJACKHMMER Error. Check Logs.\n")
+            HMMer_Log.write("\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output))
+        Output.error("\nJACKHMMER Error. Check Logs.\n")
     except OSError as os_err:
         with open(os.path.join(Log_Dir, "JACKHMMER.txt"), "a") as HMMer_Log:
             HMMer_Log.write(JACKHMMER_Output)
-            HMMer_Log.write("\n\n" + str(os_err.strerror))
-        Output.error("\n\nJACKHMMER Error. Check Logs.\n")
+            HMMer_Log.write("\n" + str(os_err.strerror))
+        Output.error("\nJACKHMMER Error. Check Logs.\n")
     with open(os.path.join(Log_Dir, "JACKHMMER.txt"), "a") as HMMer_Log:
         HMMer_Log.write(JACKHMMER_Output)
     Exit_Terms = ["------ inclusion threshold ------", "[No hits detected that satisfy reporting thresholds]"]
@@ -946,13 +953,13 @@ def Marker_HMMSEARCH(Marker_Names, Marker_File, ConcatenatedGenomeFile, HMMSEARC
     except subprocess.CalledProcessError as call_err:
         with open(os.path.join(Log_Dir, "HMMSEARCH.txt"), "a") as HMMer_Log:
             HMMer_Log.write(HMMSEARCH_Output)
-            HMMer_Log.write("\n\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output))
-        Output.error("\n\nHMMSEARCH Error. Check Logs.\n")
+            HMMer_Log.write("\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output))
+        Output.error("\nHMMSEARCH Error. Check Logs.\n")
     except OSError as os_err:
         with open(os.path.join(Log_Dir, "HMMSEARCH.txt"), "a") as HMMer_Log:
             HMMer_Log.write(HMMSEARCH_Output)
-            HMMer_Log.write("\n\n" + str(os_err.strerror))
-        Output.error("\n\nHMMSEARCH Error. Check Logs.\n")
+            HMMer_Log.write("\n" + str(os_err.strerror))
+        Output.error("\nHMMSEARCH Error. Check Logs.\n")
     with open(os.path.join(Log_Dir, "HMMSEARCH.txt"), "a") as HMMer_Log:
         HMMer_Log.write(HMMSEARCH_Output)
     Exit_Terms = ["------ inclusion threshold ------", "[No hits detected that satisfy reporting thresholds]", "Domain annotation for each sequence:"]
@@ -1021,7 +1028,7 @@ def Build_PAMatrix(HMM_Clusters, GLIMPSe_Output_Dir, Genome_Dictionary, Output):
     elif isinstance(HMM_Clusters, dict):
         Cluster_Dict = HMM_Clusters.copy()
     else:
-        Output.error("\n\nGLIMPSe pipeline Error. Check Logs.\n")
+        Output.error("\nGLIMPSe pipeline Error. Check Logs.\n")
         sys.exit()
     with open(os.path.join(GLIMPSe_Output_Dir, "PA_Matrix.tsv"), "w") as PAMatrix:
         OutHeader = ""
@@ -1131,7 +1138,7 @@ def Determine_Protein_Distribution(Protein_Distribution, Protein_Clusters, Genom
     elif isinstance(Protein_Clusters, dict):
         Cluster_Dict = Protein_Clusters.copy()
     else:
-        Output.error("\n\nGLIMPSe pipeline Error. Check Logs.\n")
+        Output.error("\nGLIMPSe pipeline Error. Check Logs.\n")
         sys.exit()
     Protein_Names = Cluster_Dict.keys()
     for Protein_Name in Protein_Names:
@@ -1142,10 +1149,11 @@ def Determine_Protein_Distribution(Protein_Distribution, Protein_Clusters, Genom
         sys.exit()
     else:
         Prot_Num = len(Accepted_Proteins)
-        Output.write("GLIMPS pipeline has identified " + str(Prot_Num) + " protein(s) which meet selected criteria for core genome.\n")
+        Output.write("GLIMPS pipeline has identified " + str(Prot_Num) + " protein(s) which meet all selected criteria for core genome.\n")
     return Accepted_Proteins
 
 
+# Alignment and trimming of proteins is handled by the following functions
 def Calculate_AIs(Alignment_Dir, Alignment, AIs):
     """Calculates Aamino Acid Identity for a given amino acid alignment"""
     AI_Dict = {}
@@ -1175,7 +1183,6 @@ def Calculate_AIs(Alignment_Dir, Alignment, AIs):
     return Return_List
 
 
-# Alignment and trimming of proteins is handled by the following functions
 def Calculate_AAI(Alignment_Dir, Genome_Dictionary, Log_Dir, GLIMPSe_Output_Dir, Threads):
     """Generates AAI matrix"""
     IDs = sorted(Genome_Dictionary.keys())
@@ -1243,12 +1250,12 @@ def Align_Proteins(Protein_Dir, Protein_File, Alignment_Dir, ClustalOmega, Count
         try:
             ClustalOmega_Output = subprocess.check_output(cmd, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as call_err:
-            ClustalOmega_Output += "\n\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output)
-            Output.error("\n\nClustal Omega Error. Check Logs.\n")
+            ClustalOmega_Output += "\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output)
+            Output.error("\nClustal Omega Error. Check Logs.\n")
             return ClustalOmega_Output
         except OSError as os_err:
-            ClustalOmega_Output += "\n\n" + str(os_err.strerror)
-            Output.error("\n\nClustal Omega Error. Check Logs.\n")
+            ClustalOmega_Output += "\n" + str(os_err.strerror)
+            Output.error("\nClustal Omega Error. Check Logs.\n")
             return ClustalOmega_Output
     if not First_Run:
         if Count % 25 == 0:
@@ -1296,11 +1303,11 @@ def Create_Weighted_Alignments(Alignment_Dir, Accepted_Proteins, TrimAl, Output)
                 "-sgc"
             ])
         except subprocess.CalledProcessError as call_err:
-            Output.error("\n\nTrimAl Error.\n")
-            Output.error("\n\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output))
+            Output.error("\nTrimAl Error.\n")
+            Output.error("\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output))
             sys.exit()
         except OSError as os_err:
-            Output.error("\n\nTrimAl Error.\n")
+            Output.error("\nTrimAl Error.\n")
             Output.error("\nError: " + str(os_err.strerror))
             sys.exit()
         seq_score = []
@@ -1340,7 +1347,7 @@ def Create_Weighted_Alignments(Alignment_Dir, Accepted_Proteins, TrimAl, Output)
     return Alignment_Length
 
 # TODO Add option to filter all completely conserved sites in alignment
-def Create_Trimmed_Alignments(Alignment_Dir, Accepted_Proteins, TrimAl, Output):
+def Create_Trimmed_Alignments(Alignment_Dir, Accepted_Proteins, TrimAl, Polymorphic, Output):
     """Generates trimmed alignments"""
     for Alignment_File in Accepted_Proteins:
         try:
@@ -1353,14 +1360,30 @@ def Create_Trimmed_Alignments(Alignment_Dir, Accepted_Proteins, TrimAl, Output):
                 "-automated1"
             ])
         except subprocess.CalledProcessError as call_err:
-            Output.error("\n\nTrimAl Error.\n")
-            Output.error("\n\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output))
+            Output.error("\nTrimAl Error.\n")
+            Output.error("\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output))
             sys.exit()
         except OSError as os_err:
-            Output.error("\n\nTrimAl Error.\n")
+            Output.error("\nTrimAl Error.\n")
             Output.error("\nError: " + str(os_err.strerror))
             sys.exit()
-
+        if Polymorphic == True:
+            Align_In = Parse_Fasta(os.path.join(Alignment_Dir, "Trimmed_" + Alignment_File))
+            Align_In_Keys = Align_In.keys()
+            Invariants = []
+            for index in range(len(Align_In[Align_In_Keys[0]])):
+                for key in Align_In:
+                    if Align_In[Align_In_Keys[0]][index] != Align_In[key][index]:
+                        break
+                else:
+                    Invariants.append(index)
+            Invariants.reverse()
+            for index in Invariants:
+                for key in Align_In:
+                    Align_In[key] = Align_In[key][:index] + Align_In[key][(index + 1):]
+            with open(os.path.join(Alignment_Dir, "Trimmed_" + Alignment_File), "w") as Align_Out:
+                for key in Align_In:
+                    Align_Out.write(key + "\n" + Align_In[key] + "\n")
 
 def Insert_Filler_Sequences(Accepted_Proteins, Alignment_Dir, Genome_Dictionary):
     """Inserts blank sequences from organisms missing in an alignment"""
@@ -1457,7 +1480,7 @@ def Run_FastTree(Tree_Dir, Concatenated_Dir, FastTree, Log_Dir, Output):
     except (subprocess.CalledProcessError, OSError):
         with open(os.path.join(Log_Dir, "FastTree.txt"), "a") as FastTree_Log:
             FastTree_Log.write(FastTree_Output)
-        Output.error("\n\nFastTree Error. Check Logs.\n")
+        Output.error("\nFastTree Error. Check Logs.\n")
         sys.exit()
 
 
@@ -1487,7 +1510,7 @@ def Run_FastTree_Full(Tree_Dir, Concatenated_Dir, FastTree, Log_Dir, Output, GLI
     except (subprocess.CalledProcessError, OSError):
         with open(os.path.join(Log_Dir, "FastTree.txt"), "a") as FastTree_Log:
             FastTree_Log.write(FastTree_Output)
-        Output.error("\n\nFastTree Error. Check Logs.\n")
+        Output.error("\nFastTree Error. Check Logs.\n")
         sys.exit()
     try:
         import dendropy
@@ -1539,7 +1562,7 @@ def Run_RAxML(Tree_Dir, Concatenated_Dir, RAxML, Threads, Log_Dir, GLIMPSe_Outpu
     except (subprocess.CalledProcessError, OSError):
         with open(os.path.join(Log_Dir, "RAxML.txt"), "w") as RAxML_Log:
             RAxML_Log.write(RAxML_Output)
-        Output.error("\n\nRAxML Error. Check Logs.\n")
+        Output.error("\nRAxML Error. Check Logs.\n")
         sys.exit()
     else:
         cmd = [RAxML,
@@ -1614,7 +1637,7 @@ def GLIMPSe_log(Alignment_Dir, Protein_Distribution, Alignment_Length, HMMer_Tim
                 "\nMinimum proportion of organisms (organisms identified/total number of organisms) in accepted protein families = " + str(
                     Protein_Distribution * 100) + "%")
             log.write("\nLenght of trimmed concatenated alignment = " + str(Alignment_Length))
-            log.write("\n\nThe following proteins were used in the concatenated alignment:")
+            log.write("\nThe following proteins were used in the concatenated alignment:")
             for alignment in os.listdir(Alignment_Dir):
                 if alignment.startswith("Trimmed_"):
                     log.write("\n" + os.path.splitext(alignment)[0][8:])
@@ -1627,11 +1650,11 @@ def GLIMPSe_log(Alignment_Dir, Protein_Distribution, Alignment_Length, HMMer_Tim
                 "\nMinimum proportion of organisms (organisms identified/total number of organisms) in accepted protein families = " + str(
                     Protein_Distribution * 100) + "%")
             log.write("\nLenght of unweighted concatenated alignment = " + str(Alignment_Length))
-            log.write("\n\nThe following proteins were used in the concatenated alignment:")
+            log.write("\nThe following proteins were used in the concatenated alignment:")
             for alignment in os.listdir(Alignment_Dir):
                 if alignment.startswith("Weighted_"):
                     log.write("\n" + os.path.splitext(alignment)[0][9:])
-        log.write("\n\nProtein Family Identification Duration = " + str(round(HMMer_Time, 2)) + " seconds")
+        log.write("\nProtein Family Identification Duration = " + str(round(HMMer_Time, 2)) + " seconds")
         log.write("\nDuration of Final ClustalOmega Alignments = " + str(round(ClustalOmega_Time, 2)) + " seconds")
         log.write("\nOperational time of FastTree = " + str(round(FastTree_Time, 2)) + " seconds")
         log.write("\nOperational time of RAxML = " + str(round(RAxML_Time, 2)) + " seconds")
@@ -1639,7 +1662,7 @@ def GLIMPSe_log(Alignment_Dir, Protein_Distribution, Alignment_Length, HMMer_Tim
 
 
 def Core_Pipeline(Input_Directory, Target_Proteins, Protein_Distribution, Alignment_Filtering, PAMatrix, POCP, AAI,
-                  Single_Copy, Marker_Proteins, Fast_Cluster, Fast_Phylogeny, No_Tree, Genome_Dir, Protein_Dir,
+                  Single_Copy, Marker_Proteins, Fast_Cluster, Fast_Phylogeny, No_Tree, Polymorphic, Genome_Dir, Protein_Dir,
                   Alignment_Dir, Concatenated_Dir, Tree_Dir, Log_Dir, GLIMPSe_Output_Dir, Marker_Dir, CDHIT, JACKHMMER,
                   HMMBUILD, HMMSEARCH, ClustalOmega, TrimAl, FastTree, RAxML, Threads, stdout_messenger,
                   stderr_messenger):
@@ -1684,9 +1707,9 @@ def Core_Pipeline(Input_Directory, Target_Proteins, Protein_Distribution, Alignm
         Output.write("All protein families identiefied.\n")
 
     Output.write("\n:::PROTEIN FAMILY ALIGNMENT AND TRIMMING:::\n")
-    Output.write("Performing ClustalOmega alignments...\n")
     ClustalOmega_Start = time.time()
     if AAI:
+        Output.write("Performing ClustalOmega alignments on all putative protein families...\n")
         ParallelAlignment(Protein_Dir, Alignment_Dir, ClustalOmega, Log_Dir, Threads, False, [], Output)
         ClustalOmega_Time = time.time() - ClustalOmega_Start
         Output.write("All ClustalOmega alignments complete.\n")
@@ -1694,16 +1717,17 @@ def Core_Pipeline(Input_Directory, Target_Proteins, Protein_Distribution, Alignm
         Calculate_AAI(Alignment_Dir, Genome_Dictionary, Log_Dir, GLIMPSe_Output_Dir, Threads)
         Output.write("Average Amino Acid Identity Matrix Produced.\n")
     elif not AAI:
+        Output.write("Performing ClustalOmega alignments on protein families which meet selected criteria for core genome...\n")
         ParallelAlignment(Protein_Dir, Alignment_Dir, ClustalOmega, Log_Dir, Threads, False, Accepted_Proteins, Output)
         ClustalOmega_Time = time.time() - ClustalOmega_Start
         Output.write("All ClustalOmega alignments complete.\n")
     else:
-        Output.error("\n\nGLIMPSe pipeline error. Check Logs.\n")
+        Output.error("\nGLIMPSe pipeline error. Check Logs.\n")
         sys.exit()
     Alignment_Length = 0
     if Alignment_Filtering == "Trim":
         Output.write("Trimming alignments...\n")
-        Create_Trimmed_Alignments(Alignment_Dir, Accepted_Proteins, TrimAl, Output)
+        Create_Trimmed_Alignments(Alignment_Dir, Accepted_Proteins, TrimAl, Polymorphic, Output)
         Output.write("All alignments trimmed.\n")
     elif Alignment_Filtering == "Weight":
         Output.write("Creating weighted alignments...\n")
@@ -1715,15 +1739,15 @@ def Core_Pipeline(Input_Directory, Target_Proteins, Protein_Distribution, Alignm
     elif Alignment_Filtering == "Weight":
         Concatenate_Alignments(Accepted_Proteins, Alignment_Dir, Concatenated_Dir, Genome_Dictionary, GLIMPSe_Output_Dir, Output)
     else:
-        Output.error("\n\nGLIMPSe pipeline error. Check Logs.\n")
+        Output.error("\nGLIMPSe pipeline error. Check Logs.\n")
         sys.exit()
     Output.write("Alignments concatenated.\n")
 
-    Output.write("\n:::PHYLOGENETIC TREE CONSTRUCTION:::\n")
     if No_Tree:
         FastTree_Time = 0
         RAxML_Time = 0
     else:
+        Output.write("\n:::PHYLOGENETIC TREE CONSTRUCTION:::\n")
         if Fast_Phylogeny:
             Output.write("Building tree using FastTree...\n")
             FastTree_Start = time.time()
@@ -1758,7 +1782,7 @@ def main():
     CDHIT, JACKHMMER, HMMBUILD, HMMSEARCH, ClustalOmega, TrimAl, FastTree, RAxML, Threads = Prepare_Dependencies(Dependency_Dir, stdout_messenger, stderr_messenger)
     Core_Pipeline(args.Input_Directory, args.Target_Proteins, args.Protein_Distribution, args.Alignment_Filtering,
                   args.PAMatrix, args.POCP, args.AAI, args.Single_Copy, args.Marker_Proteins, args.Fast_Cluster,
-                  args.Fast_Phylogeny, args.No_Tree, Genome_Dir, Protein_Dir, Alignment_Dir, Concatenated_Dir, Tree_Dir,
+                  args.Fast_Phylogeny, args.No_Tree, args.Polymorphic, Genome_Dir, Protein_Dir, Alignment_Dir, Concatenated_Dir, Tree_Dir,
                   Log_Dir, GLIMPSe_Output_Dir, Marker_Dir, CDHIT, JACKHMMER, HMMBUILD, HMMSEARCH, ClustalOmega, TrimAl,
                   FastTree, RAxML, Threads, stdout_messenger, stderr_messenger)
 

@@ -72,6 +72,8 @@ class GUI(ttk.Frame):
         self.Phylogeny.set(1)
         self.Single_Copy = Tkinter.IntVar()
         self.Single_Copy.set(0)
+        self.Polymorphic = Tkinter.IntVar()
+        self.Polymorphic.set(0)
         self.Fast_Clust = Tkinter.IntVar()
         self.Fast_Clust.set(0)
         self.Fast_Phylo = Tkinter.IntVar()
@@ -206,24 +208,27 @@ class GUI(ttk.Frame):
         # Pipeline algorithm settings
         Pipeline_Settings = ttk.LabelFrame(SettingsFrame, text="Pipeline Settings")
         Pipeline_Settings.grid(row=1, columnspan=3, sticky="NSWE", padx=10, pady=5)
+        Poly = ttk.Checkbutton(Pipeline_Settings, variable=self.Polymorphic,
+                             text='Use only polymorphic amino acid positions in phylogenetic analysis')
+        Poly.grid(row=0, columnspan=2, sticky='NSW', padx=10, pady=5)
         SC = ttk.Checkbutton(Pipeline_Settings, variable=self.Single_Copy,
                              text='Use only single copy homologs (Only in automated clustering)')
-        SC.grid(row=0, columnspan=2, sticky='NSW', padx=10, pady=5)
-        SC = ttk.Checkbutton(Pipeline_Settings, variable=self.Fast_Clust,
-                             text='Skip HMMer steps in automated core protein identification (Fast Clustering)')
         SC.grid(row=1, columnspan=2, sticky='NSW', padx=10, pady=5)
-        SC = ttk.Checkbutton(Pipeline_Settings, variable=self.Fast_Phylo,
+        FC = ttk.Checkbutton(Pipeline_Settings, variable=self.Fast_Clust,
+                             text='Skip HMMer steps in automated core protein identification (Fast Clustering)')
+        FC.grid(row=2, columnspan=2, sticky='NSW', padx=10, pady=5)
+        FP = ttk.Checkbutton(Pipeline_Settings, variable=self.Fast_Phylo,
                              text='Skip RAxML step in phylogenetic tree construction (Fast Phylogeny)')
-        SC.grid(row=2, columnspan=2, sticky='NSW', padx=10, pady=5)
+        FP.grid(row=3, columnspan=2, sticky='NSW', padx=10, pady=5)
         ThreadLabel = ttk.Label(Pipeline_Settings, text='Number of threads to utilize in pipeline')
-        ThreadLabel.grid(row=3, column=0, sticky='NSE', padx=10, pady=5)
+        ThreadLabel.grid(row=4, column=0, sticky='NSE', padx=10, pady=5)
         Num_Thread = self.Threads.get()
         Thread = Tkinter.Spinbox(Pipeline_Settings, textvariable=self.Threads, from_=1, to=Num_Thread, width=3)
-        Thread.grid(row=3, column=1, sticky='NSW', padx=10, pady=5)
+        Thread.grid(row=4, column=1, sticky='NSW', padx=10, pady=5)
         PDLabel = ttk.Label(Pipeline_Settings, text='Acceptnce threshold for distribution of core proteins (%)')
-        PDLabel.grid(row=4, column=0, sticky='NSE', padx=10, pady=5)
+        PDLabel.grid(row=5, column=0, sticky='NSE', padx=10, pady=5)
         PD = Tkinter.Spinbox(Pipeline_Settings, textvariable=self.Protein_Distribution, from_=1, to=100, width=3)
-        PD.grid(row=4, column=1, sticky='NSW', padx=10, pady=5)
+        PD.grid(row=5, column=1, sticky='NSW', padx=10, pady=5)
 
         # Pipeline dependencies
         Dependencies = ttk.LabelFrame(SettingsFrame, text='Dependencies')
@@ -378,7 +383,7 @@ class GUI(ttk.Frame):
         MarkerSet = self.MarkerSet.get().lower().replace(" ", "_")
         AsyncTask(self.Queue, self.inFolder.get(), self.outFolder.get(), self.TargetFasta.get(), MarkerSet,
                   self.Threads.get(), self.Protein_Distribution.get(), self.PAMatrix.get(), self.POCP.get(),
-                  self.AAI.get(), self.Phylogeny.get(),
+                  self.AAI.get(), self.Phylogeny.get(), self.Polymorphic.get(),
                   self.Single_Copy.get(), self.Fast_Clust.get(), self.Fast_Phylo.get(), self.CDHIT.get(),
                   self.JACKHMMER.get(), self.HMMBUILD.get(), self.HMMSEARCH.get(), self.ClustalOmega.get(),
                   self.TrimAl.get(), self.FastTree.get(), self.RAxML.get(), self.stdout_messenger,
@@ -450,7 +455,7 @@ class AsyncTask(multiprocessing.Process):
     """Class for running the Pipeline in a seperate thread, subclasses multiprocessing"""
 
     def __init__(self, Queue, Input_Directory, Output_Directory, Target_Proteins, MarkerSet, Threads,
-                 Protein_Distribution, PAMatrix, POCP, AAI, Phylogeny, Single_Copy, Fast_Clust, Fast_Phylo, CDHIT,
+                 Protein_Distribution, PAMatrix, POCP, AAI, Phylogeny, Polymorphic, Single_Copy, Fast_Clust, Fast_Phylo, CDHIT,
                  JACKHMMER, HMMBUILD, HMMSEARCH, ClustalOmega, TrimAl, FastTree, RAxML, stdout_messenger,
                  stderr_messenger):
         multiprocessing.Process.__init__(self)
@@ -478,6 +483,8 @@ class AsyncTask(multiprocessing.Process):
             self.Phylogeny = False
         else:
             self.Phylogeny = True
+        if Polymorphic == 1:
+            self.Polymorphic = True
         if Single_Copy == 1:
             self.Single_Copy = True
         else:
@@ -508,7 +515,7 @@ class AsyncTask(multiprocessing.Process):
             Genome_Dir, Protein_Dir, Alignment_Dir, Concatenated_Dir, Tree_Dir, Log_Dir, GLIMPSe_Output_Dir, Dependency_Dir, Marker_Dir = GLIMPS_Pipeline.Build_Output_Dirs(self.Output_Directory, self.stdout_messenger, self.stderr_messenger)
             GLIMPS_Pipeline.Core_Pipeline(self.Input_Directory, self.Target_Proteins, self.Protein_Distribution,
                                           self.Alignment_Filtering, self.PAMatrix, self.POCP, self.AAI, self.Single_Copy,
-                                          self.Marker_Proteins, self.Fast_Clust, self.Fast_Phylo, self.Phylogeny,
+                                          self.Marker_Proteins, self.Fast_Clust, self.Fast_Phylo, self.Phylogeny, self.Polymorphic,
                                           Genome_Dir, Protein_Dir, Alignment_Dir, Concatenated_Dir, Tree_Dir, Log_Dir,
                                           GLIMPSe_Output_Dir, Marker_Dir, self.CDHIT, self.JACKHMMER, self.HMMBUILD,
                                           self.HMMSEARCH,
