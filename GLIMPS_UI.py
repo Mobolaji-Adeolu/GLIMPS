@@ -485,6 +485,8 @@ class AsyncTask(multiprocessing.Process):
             self.Phylogeny = True
         if Polymorphic == 1:
             self.Polymorphic = True
+        else:
+            self.Polymorphic = False
         if Single_Copy == 1:
             self.Single_Copy = True
         else:
