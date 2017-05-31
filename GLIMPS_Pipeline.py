@@ -13,9 +13,10 @@ import random
 import re
 import shutil
 import subprocess
-import sys
 import tarfile
 import tempfile
+
+import sys
 import time
 
 
@@ -553,7 +554,7 @@ def CDHIT_Subprocess(CDHIT, Log_Dir, Output, Input_File, Output_File, Threshold,
             CDHIT_Log.write("\n" + "Command: " + str(call_err.cmd) + "\nError: " + str(call_err.output))
         Output.error("\nCD-HIT Error. Check Logs.\n")
         sys.exit()
-    except OSError as os_err:
+    except OSError as os_err: # TODO More verbose OS Error
         with open(os.path.join(Log_Dir, "CDHIT.txt"), "a") as CDHIT_Log:
             CDHIT_Log.write(CDHIT_Output)
             CDHIT_Log.write("\n" + str(os_err.strerror))
@@ -902,7 +903,7 @@ def Run_JACKHMMER(Input_Fasta_Dict, Target_Proteins, ConcatenatedGenomeFile, JAC
         if "Query:" in line or "Description:" in line:
             Prot_Found = True
             for key in Input_Fasta_Dict.keys():
-                if key.lstrip(">") in line:
+                if key.lstrip(">") in line or key.lstrip(">").split(" ")[0] in line:
                     Prot_Name = Replace_Chars(key.lstrip(">"))
                     if Prot_Name in Protein_Fams.keys() and Protein_Fams[Prot_Name] == []:
                         count = 2
