@@ -13,10 +13,9 @@ import random
 import re
 import shutil
 import subprocess
+import sys
 import tarfile
 import tempfile
-
-import sys
 import time
 
 
@@ -903,7 +902,7 @@ def Run_JACKHMMER(Input_Fasta_Dict, Target_Proteins, ConcatenatedGenomeFile, JAC
         if "Query:" in line or "Description:" in line:
             Prot_Found = True
             for key in Input_Fasta_Dict.keys():
-                if key.lstrip(">") in line or key.lstrip(">").split(" ")[0] in line:
+                if key.lstrip(">") in line or " ".join(key.lstrip(">").split(" ")[1:]) in line and "." in key.lstrip(">").split(" ")[0]:
                     Prot_Name = Replace_Chars(key.lstrip(">"))
                     if Prot_Name in Protein_Fams.keys() and Protein_Fams[Prot_Name] == []:
                         count = 2
